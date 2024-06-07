@@ -1,0 +1,163 @@
+/*
+
+AKP's Tech Classroom
+
+*/
+
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <SoftwareSerial.h>
+
+// Initialize SoftwareSerial on pins 13 and 15 for communication with Arduino
+SoftwareSerial abc(13, 15); // RX, TX (Connect Arduino RX to ESP8266 TX, and Arduino TX to ESP8266 RX)
+
+// Change the credentials below, so your ESP8266 connects to your router
+const char* ssid = ""; // Your Wi-Fi SSID
+const char* password = ""; // Your Wi-Fi Password
+
+// Change the variable to your Raspberry Pi IP address, so it connects to your MQTT broker
+const char* mqtt_server = ""; // Your MQTT Broker IP address
+
+// Initializes the espClient. You should change the espClient name if you have multiple ESPs running in your home automation system
+WiFiClient espClient22;
+PubSubClient client(espClient22);
+
+String rak = "";
+String Mode = "";
+
+// Connect your NodeMCU to your router
+void setup_wifi() {
+  delay(10);
+  
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  
+  // Wait until the connection is established
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+    Serial.print(".");
+  }
+  
+  Serial.println("");
+  Serial.print("WiFi connected - NodeMCU IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+// Callback function to handle incoming MQTT messages
+void callback(String topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  
+  String messageInfo;
+  int it;
+  
+  // Print and store the incoming message
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    messageInfo += (char)message[i];
+    it = (char)message[i];
+  }
+  
+  Serial.println();
+  
+  // Handle the message received on the topic "mode1&2"
+  if (topic == "mode1&2") {
+    Serial.print("Changing mode to ");
+    
+    // Set the mode to either manual or auto based on the message
+    if (messageInfo == "manual") {
+      Mode = messageInfo;
+    } else if (messageInfo == "auto") {
+      Mode = messageInfo;
+    }
+    
+    Serial.println("The mode is: ");
+    Serial.println(Mode);
+    
+    // Send commands to the Arduino based on the mode and message received
+    if (messageInfo == "manual") {
+      abc.write("manual");
+    }
+    if (messageInfo == "f" && Mode == "manual") {
+      Serial.print("On");
+      abc.write("f");
+    } else if (messageInfo == "b" && Mode == "manual") {
+      Serial.print("Off");
+      abc.write("b");
+    } else if (messageInfo == "r" && Mode == "manual") {
+      Serial.print("Off");
+      abc.write("r");
+    } else if (messageInfo == "l" && Mode == "manual") {
+      Serial.print("Off");
+      abc.write("l");
+    } else if (messageInfo == "auto") {
+      abc.write("auto");
+    }
+  }
+  
+  Serial.println();
+  rak = messageInfo;
+}
+
+// This function reconnects your ESP8266 to your MQTT broker
+// Change the function below if you want to subscribe to more topics with your ESP8266 
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    
+    // Attempt to connect
+    if (client.connect("ESP8266Client22")) {
+      Serial.println("connected");  
+      
+      // Subscribe or resubscribe to a topic
+      // You can subscribe to more topics (to control more LEDs in this example)
+      client.subscribe("mode1&2");
+      client.subscribe("mode3i");
+      client.subscribe("mode3j");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+// The setup function sets your ESP GPIOs to Outputs, starts the serial communication at a baud rate of 115200
+// Sets your mqtt broker and sets the callback function
+// The callback function is what receives messages and actually controls the LEDs
+void setup() {
+  // Initialize serial communication at 115200 baud
+  Serial.begin(115200);
+  
+  // Connect to Wi-Fi
+  setup_wifi();
+  
+  // Set the MQTT server and callback function
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+  
+  // Initialize SoftwareSerial communication with Arduino
+  abc.begin(9600);
+}
+
+// The loop function ensures that the NodeMCU is connected to the MQTT broker
+void loop() {
+  // Reconnect if the client is disconnected
+  if (!client.connected()) {
+    reconnect();
+  }
+  
+  // Maintain the connection to the MQTT broker
+  if (!client.loop()) {
+    client.connect("ESP8266Client22");
+  }
+}
