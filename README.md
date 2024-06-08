@@ -241,9 +241,15 @@ Diagram Components:
 
 ## NODE-RED
 Node Red Design
+
+
 ![image](https://github.com/ENG-Rakan-Almutairi/-IOT-Based-Smart-Moving-Things-base/assets/170817969/f8872570-cfd2-4133-a654-ae0f6080cf19)
 
+
+
 Node Red interface
+
+
 ![image](https://github.com/ENG-Rakan-Almutairi/-IOT-Based-Smart-Moving-Things-base/assets/170817969/86bcc0e5-feb1-413d-b971-391c4d03a44d)
 
 
